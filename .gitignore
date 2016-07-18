@@ -1,6 +1,9 @@
 # Custom #
 ###################
 node_modules
+notes.md
+output/*
+!output/output.txt
 
 # Compiled source #
 ###################

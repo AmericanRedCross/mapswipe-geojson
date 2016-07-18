@@ -1,0 +1,19 @@
+{
+  "name": "mapswipe-map",
+  "version": "0.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "flow": "^0.2.3",
+    "jsonfile": "^2.3.1",
+    "moment": "^2.14.1",
+    "request": "^2.73.0",
+    "tilebelt": "^1.0.1",
+    "turf": "^3.0.14"
+  }
+}
