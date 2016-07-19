@@ -70,11 +70,23 @@ function countResults(obj, cb){
           break;
         default:
           feature.properties.error++;
-          console.log("not 1, 2, or 3?");
+          console.log(" . . . ");
           console.log(obj[key][review]['data']);
           console.log(" . . . ");
       }
     }
+    // what has the highest count?
+    var featureCat = '';
+    var catCount = 0;
+    var cats = ["one","two","three"];
+    for(var i in cats){
+      if(feature.properties[cats[i]] > catCount){
+        featureCat = cats[i];
+        catCount = feature.properties[cat];
+      }
+    }
+    feature.properties['category'] = featureCat
+
     features.push(feature);
   }
   var fc = turf.featureCollection(features);
