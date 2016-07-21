@@ -9,6 +9,7 @@ var turf = require('turf');
 // var moment = require("moment");
 // var timestamp = moment().format('YYYYMMDD-HHmmss');
 
+var errors = {}
 
 // to fetch the latest results file after a first run, delete output/results.json
 var output = path.join(__dirname,'output','results.json');
@@ -70,19 +71,21 @@ function countResults(obj, cb){
           break;
         default:
           feature.properties.error++;
-          console.log(" . . . ");
-          console.log(obj[key][review]['data']);
-          console.log(" . . . ");
+          errorCount ++;
+          // console.log(" . . . ");
+          // console.log(obj[key][review]['data']);
+          var thisKey = key + "/" + review;
+          errors[thisKey] = obj[key][review]['data'];
       }
     }
     // what has the highest count?
     var featureCat = '';
     var catCount = 0;
     var cats = ["one","two","three"];
-    for(var i in cats){
+    for(i = 0; i<3; i++){
       if(feature.properties[cats[i]] > catCount){
         featureCat = cats[i];
-        catCount = feature.properties[cat];
+        catCount = feature.properties[cats[i]];
       }
     }
     feature.properties['category'] = featureCat
@@ -122,6 +125,7 @@ var justDoIt = flow.define(
   },
   function(fc){
     fs.writeFile('./output/testing.geojson', JSON.stringify(fc));
+    fs.writeFile('./output/errors.json', JSON.stringify(errors));
     console.log('done?')
   }
 )
