@@ -2,132 +2,93 @@ var fs = require('fs');
 var path = require('path');
 var flow = require('flow');
 var request = require('request');
-var jsonfile = require('jsonfile');
 var tilebelt = require('tilebelt');
 var turf = require('turf');
+var moment = require("moment");
+var d3 = require("d3-queue");
 
-// var moment = require("moment");
-// var timestamp = moment().format('YYYYMMDD-HHmmss');
+var timestamp = moment().format('YYYYMMDD-HHmmss');
 
-var errors = {}
+// array of project number(s) to combine and convert to GeoJSON
+var targetPrjs = [124, 303];
 
-// to fetch the latest results file after a first run, delete output/results.json
-var output = path.join(__dirname,'output','results.json');
 
-function checkForFile(cb){
-  fs.access(output, fs.F_OK, function(err) {
-      if (!err) {
-          // file exists
-          console.log('results.json exists')
-          cb(null);
-      } else {
-          console.log('could not find results.json')
-          // file isn't accessible
-          cb(true);
+function getResults(prj, cb){
+  var apiPath = "http://api.mapswipe.org/projects/" + prj + ".json";
+  console.log(apiPath)
+  request({ url: apiPath, json: true }, function (error, response, body) {
+      if(error) throw error;
+      if (!error && response.statusCode === 200) {
+        cb(null, body);
       }
-  });
+  })
 }
 
-function getResults(cb){
+function makeGeo(results, cb){
 
-  var filePath = path.join(__dirname,'output','results.json')
-  request
-    .get('http://104.196.146.215/results.json')
-    .on('error', function(err) {
-      console.log(err)
-
-    })
-    .pipe(fs.createWriteStream(filePath))
-    .on('finish', function(){
-      console.log('done downloading results.json');
-      cb();
-    })
-}
-
-function countResults(obj, cb){
-
-  var features = [];
-  for(var key in obj){
+  for(var i=0; i<results.length; i++){
     // key should be something like "18-151822-132938"
-    var location = key.split('-');
+    var location = results[i].id.split('-');
     // reorder because tilebelt expects [x,y,z]
-    var tile = [parseFloat(location[1]), parseFloat(location[2]), parseFloat(location[0])];
-    var geometry = tilebelt.tileToGeoJSON(tile);
-    var properties = { one: 0, two: 0, three: 0, total: 0, error: 0 };
-    var feature = turf.feature(geometry, properties);
-    for(var review in obj[key]){
-      switch(obj[key][review]['data']['result']) {
-        case 1:
-          feature.properties.one++;
-          feature.properties.total++;
-          break;
-        case 2:
-          feature.properties.two++;
-          feature.properties.total++;
-          break;
-        case 3:
-          feature.properties.three++;
-          feature.properties.total++;
-          break;
-        default:
-          feature.properties.error++;
-          errorCount ++;
-          // console.log(" . . . ");
-          // console.log(obj[key][review]['data']);
-          var thisKey = key + "/" + review;
-          errors[thisKey] = obj[key][review]['data'];
-      }
+    var geometry = tilebelt.tileToGeoJSON([parseFloat(location[1]), parseFloat(location[2]), parseFloat(location[0])]);
+    // which result has the highest count?
+    // sorta.. if things equal this doesn't necessarily handle it well
+    var count = 0;
+    var cat = "error";
+    if (results[i].yes_count > count) {
+      count = results[i].yes_count;
+      cat = "yes";
     }
-    // what has the highest count?
-    var featureCat = '';
-    var catCount = 0;
-    var cats = ["one","two","three"];
-    for(i = 0; i<3; i++){
-      if(feature.properties[cats[i]] > catCount){
-        featureCat = cats[i];
-        catCount = feature.properties[cats[i]];
-      }
+    if (results[i].bad_imagery_count > count) {
+      count = results[i].bad_imagery_count;
+      cat = "bad";
     }
-    feature.properties['category'] = featureCat
-
-    features.push(feature);
+    if (results[i].maybe_count > count) {
+      count = results[i].maybe_count;
+      cat = "maybe";
+    }
+    // format as GeoJSON feature
+    var feature = turf.feature(geometry, {
+      "prj": results[i].project,
+      "cat": cat,
+      "1": results[i].yes_count,
+      "2": results[i].maybe_count,
+      "3": results[i].bad_imagery_count
+    });
+    // replace the data object with the GeoJSON feature
+    results[i] = feature;
   }
-  var fc = turf.featureCollection(features);
-  cb(fc);
+  cb(results);
+
 }
 
-
-function log(message, cb) {
-  console.log(message);
-  cb();
-}
-
-
-var justDoIt = flow.define(
+flow.exec(
   function(){
-    // this first bit is a little hacky for now, it's just here because I
-    // don't want to re-download the 261MB and growing results.json file
-    // every time I test the code further down
-    checkForFile(this);
-  },
-  function(err){
-    if (err) {
-      getResults(this);
-    } else {
-      log('using the existing results.json', this);
+
+    var q = d3.queue();
+    for (var i = 0; i < targetPrjs.length; i++) {
+      q.defer(getResults, targetPrjs[i]);
     }
-  },
-  function(){
-    jsonfile.readFile(output, this);
-  },
-  function(err, obj){
-    countResults(obj, this);
-  },
-  function(fc){
-    fs.writeFile('./output/testing.geojson', JSON.stringify(fc));
-    fs.writeFile('./output/errors.json', JSON.stringify(errors));
-    console.log('done?')
+    q.awaitAll(this);
+
+  }
+  ,function(error, data){
+
+    if(error) throw error;
+
+    for(var i=1; i<data.length; ++i){
+      data[0] = data[0].concat(data[i])
+    }
+    makeGeo(data[0], this);
+
+  }
+  ,function(geoResults){
+
+    var fc = turf.featureCollection(geoResults);
+    var filename = "projects-" + targetPrjs.join("_") + "-" + timestamp + ".geojson";
+    var output = path.join(__dirname,'output',filename)
+    fs.writeFile(output, JSON.stringify(fc));
+    console.log("done!")
+
   }
 )
-
-justDoIt();

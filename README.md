@@ -1,28 +1,10 @@
-crunch and visualize the [Mapswipe](https://github.com/mapswipe) data
+### mapswipe-geojson
 
-right now just bits and pieces
+Simple node app to pull results from one or more Mapswipe projects via the API and convert them to a GeoJSON feature collection.
 
-
-
-links and such
-
-https://github.com/mapbox/tippecanoe
-https://github.com/morganherlocker/geocolor
-https://github.com/mapbox/tilebelt
-
-https://groups.google.com/forum/#!topic/leaflet-js/SlMWOyF4yVQ
-
-http://bl.ocks.org/mbostock/5593150
-
-http://gis.stackexchange.com/questions/125037/self-hosting-mapbox-vector-tiles
-
-https://github.com/klokantech/vector-tiles-sample#host-the-vector-tiles-without-any-server-at-all
-
-
-https://github.com/klokantech/mapbox-gl-js-offline-example
-http://klokantech.github.io/mapbox-gl-js-offline-example/
-
-
-http://104.196.146.215/stats.json
-http://104.196.146.215/users.json
-http://104.196.146.215/results.json
+- install [nodejs](https://nodejs.org/en/)
+- clone repository
+- run `npm install` to install node module dependencies
+- modify `var targetPrjs = [124, 303];` so the array contains the desired project number(s)
+- run `node app.js`
+- file should be saved to 'output' folder
