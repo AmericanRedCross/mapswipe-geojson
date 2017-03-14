@@ -10,7 +10,7 @@ var d3 = require("d3-queue");
 var timestamp = moment().format('YYYYMMDD-HHmmss');
 
 // array of project number(s) to combine and convert to GeoJSON
-var targetPrjs = [124, 303];
+var targetPrjs = [124, 303, 407, 1034, 1166, 1333, 1440, 2158, 3310, 3610, 4103];
 
 
 function getResults(prj, cb){
@@ -87,8 +87,9 @@ flow.exec(
     var fc = turf.featureCollection(geoResults);
     var filename = "projects-" + targetPrjs.join("_") + "-" + timestamp + ".geojson";
     var output = path.join(__dirname,'output',filename)
-    fs.writeFile(output, JSON.stringify(fc));
-    console.log("done!")
+    fs.writeFile(output, JSON.stringify(fc), function(){
+      console.log("done!")
+    });
 
   }
 )
